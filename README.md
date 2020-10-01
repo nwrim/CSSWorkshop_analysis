@@ -1,4 +1,4 @@
-# CSSWorkshop_analysis
+# CSS Workshop on CSS Workshop
 Slides, codes and data for my presentation in CSS workshop 2020/10/01
 
 # Versions
