@@ -1,0 +1,152 @@
+---
+title: "workshop analysis code1"
+author: "Nak Won Rim"
+date: "10/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse) # version 1.3.0
+library(lmerTest) # version 3.1-1
+library(ggpubr) # version 0.2.5
+```
+
+```{r load data}
+data <- read_csv('processed_data.csv')
+```
+
+# first figure: the primacy effect
+
+```{r fig1}
+fig1 <- ggplot(data, aes(x=position, y=num_upvotes)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  geom_smooth(method=lm, se=TRUE, level=0.95) +
+  labs(x="Position in Thread", y="Number of Upvotes", title="Position and Upvotes")
+
+fig1
+```
+
+# second figure: primacy effect are pretty consistent over the quarters
+
+```{r fig2}
+fig2 <- ggplot(data, aes(x=position, y=num_upvotes, color=quarter)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  geom_smooth(method=lm, se=TRUE, level=0.95) +
+  labs(x="Position in Thread", y="Number of Upvotes", title="Position and Upvotes")
+
+fig2
+```
+
+# Third Figure - we could do probably better to fit the model but I am going with linear assumptions
+## (left) - third polynomial
+
+```{r fig3a}
+fig3a <- ggplot(data, aes(x=position, y=num_upvotes)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  stat_smooth(method='lm', formula = y~poly(x,3)) +
+  labs(x="Position in Thread", y="Number of Upvotes", title="Third Degree Polynomial")
+
+fig3a
+```
+
+## (right) - taking log of number of upvotes 
+```{r fig3b}
+fig3b <- ggplot(data, aes(x=position, y=num_upvotes)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  stat_smooth(method='lm', formula = y~log(x + 1)) +
+  labs(x="Position in Thread", y="Number of Upvotes", title="Taking Log(x+1) on Number of Upvotes")
+
+fig3b
+```
+
+## combined plot
+
+```{r fig3}
+fig3 <- ggarrange(fig3a, fig3b,
+          ncol = 2, nrow = 1)
+fig3
+```
+
+# Fourth Figure: number of non-stop words
+## (left) - number of non-stop words and position
+
+```{r fig31}
+fig4a <- ggplot(data, aes(x=position, y=text_length)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  geom_smooth(method=lm, se=TRUE) +
+  labs(x="Position", y="Number of Non-stop Words", title="Position and Number of Non-stop Words")
+
+fig4a
+```
+
+## (left) - number of non-stop words and upvotes
+
+```{r fig4}
+fig4b <- ggplot(data, aes(x=text_length, y=num_upvotes)) +
+  theme_classic() +
+  geom_point(alpha=0.4) +
+  geom_smooth(method=lm, se=TRUE) +
+  labs(x="Number of Non-stop Words", y="Number of Upvotes", title="Number of Non-stop Words and Upvotes")
+
+fig4b
+```
+
+## combined plot
+
+```{r fig4}
+fig4 <- ggarrange(fig4a, fig4b,
+          ncol = 2, nrow = 1)
+fig4
+```
+
+# Fifth Figure: Upvote boxplot by participants
+## with ID
+
+```{r fig5_}
+fig5_ <- ggplot(data, aes(x=reorder(name, -num_upvotes, FUN = median), y=num_upvotes)) +
+  theme_classic() +
+  geom_boxplot() +
+  labs(x="Participant ID", y="Number of Upvotes", title="Upvotes by Participants") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+fig5_
+```
+
+## Without ID
+
+```{r fig5}
+fig5 <- ggplot(data, aes(x=reorder(name, -num_upvotes, FUN = median), y=num_upvotes)) +
+  theme_classic() +
+  geom_boxplot() +
+  labs(x="Participant ID", y="Number of Upvotes", title="Upvotes by Participants") + 
+  theme(axis.text.x = element_blank())
+
+fig5
+```
+
+# Sixth Figure - did not made it in to the slides - Upvote boxplot by each workshop
+```{r fig6}
+data$workshop_date <- factor(data$workshop_date)
+
+fig6 <- ggplot(data, aes(x=workshop_date, y=num_upvotes)) +
+  theme_classic() +
+  geom_boxplot() +
+  labs(x="Workshop Date", y="Number of Upvotes", title="Upvotes by Workshop Date") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+fig6
+```
+
+# Linear Mixed model
+
+```{r groupby}
+# fitting lmm
+lmm <- lmer(num_upvotes ~ position + text_length + (1|name) + (1|workshop_date), data = data, REML=FALSE)
+summary(lmm)
+```
